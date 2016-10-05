@@ -26,7 +26,7 @@ Reset_Handler
 ;;;;;;;;;;User Code Starts from the next line;;;;;;;;;;;;
 
 array_declaration
-    ldr r0,=0x200000f0
+    ldr r0,=0x200000f0          ; reset r0 to beginning of array
     ldr r1,=0x94ff3e02
     str r1,[r0],#4
     ldr r1,=0x000c0001
@@ -45,23 +45,28 @@ array_declaration
     str r1,[r0],#4
     ldr r1,=0x00889900
     str r1,[r0],#4
-    mov r1,#1
+    mov r1,r0                   ; r1 is end of array
+    mov r2,#1                   ; non-zero value to not trip next cond
 sort_outer
-    cmp r1,#0
+    cmp r2,#0                   ; r2 == 0 means we didn't change
     beq quit
-    mov r1,#0                     ; init to 0
-    ldr r0,=0x200000f0
+    mov r2,#0                   ; r2 was 1, reset it to 0
+    ldr r0,=0x200000f0          ; reset r0 to beginning of array
+    ldr r3,[r0],#4
 sort_inner
-
-sort
-    cmp r0,r1
-    beq quit
-
-
-    sub r2,#1
-    B sort
-
-
+    ldr r4,[r0],#4
+    ; r3 and r4 are array vals
+    sub r5,r3,r4                ; check if r3 < r4
+    cmp r5,#0
+    ble sort_in_fin             ; if so, skip swap
+    mov r2,#1                   ; otherwise specify that we had to swap
+    str r4,[r0, #-8]
+    str r3,[r0, #-4]
+sort_in_fin
+    mov r4,r3
+    cmp r0,r1                   ; check if cur pointer has reached end
+    beq sort_outer              ; if so, loop up to outer level
+    b sort_inner                ; else do another inner loop
 
 quit b quit
 
