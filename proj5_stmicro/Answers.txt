@@ -1,0 +1,11 @@
+5-1
+1.  0x4001 0800 + 0x0000 000C = 0x4001 080C
+2.  0x4001 1400 + 0x0000 0004 = 0x4001 1404
+3.  Write to 0x4001 1000 + 0x000 0018 = 0x4002 1018
+    With contents 0b101000 or 0x28
+4.  To synchronize the copying of data registers to the pins.
+5.  Write to CRL (0x4001 0C00) 0x0000 2002 to set 1 and 3's mode to output
+    Write to CRL (0x4001 0C04) 0x2000 0000 to set 15's mode to output
+5.  Write to 0x4001 0C00 + 0x0000 0004 = 0x4001 0C04
+5-2
+5-3
