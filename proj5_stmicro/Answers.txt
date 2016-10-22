@@ -1,11 +1,21 @@
 5-1
-1.  0x4001 0800 + 0x0000 000C = 0x4001 080C
-2.  0x4001 1400 + 0x0000 0004 = 0x4001 1404
-3.  Write to 0x4001 1000 + 0x000 0018 = 0x4002 1018
-    With contents 0b101000 or 0x28
-4.  To synchronize the copying of data registers to the pins.
-5.  Write to CRL (0x4001 0C00) 0x0000 2002 to set 1 and 3's mode to output
-    Write to CRL (0x4001 0C04) 0x2000 0000 to set 15's mode to output
-5.  Write to 0x4001 0C00 + 0x0000 0004 = 0x4001 0C04
+    1.  0x4001 0800 + 0x0000 000C = 0x4001 080C
+    2.  0x4001 1400 + 0x0000 0004 = 0x4001 1404
+    3.  Write to 0x4001 1000 + 0x000 0018 = 0x4002 1018
+        With contents 0b101000 or 0x28
+    4.  To synchronize the copying of data registers to the pins.
+    5.  Write to CRL (0x4001 0C00) 0x0000 2002 to set 1 and 3's mode to output
+        Write to CRH (0x4001 0C04) 0x2000 0000 to set 15's mode to output
 5-2
+    1.  We could reuse all of the code if we simply add a logical shift right
+        before the 3rd line where we mask out the bit we are interested in.
+	For example: lsr r0, #1, this would put the bit of interest in the 1s
+	spot.
+    2.  Write to port D CRL (0x4001 1400) a 0x0000 0800 to set pins 2/4 to
+        push/pull inputs.
+    	Write to port D CRH (0x4001 1404) a 0x0000 0080 to set pin 9 to
+	a push/pull input.
+	Write to port D ODR (0x4001 140C) with (port D ODR AND 0x1EB) to ensure
+	the ODR bits are cleared for the pins to be pull downs. This step
+	may not be necessary if we just reset.
 5-3
