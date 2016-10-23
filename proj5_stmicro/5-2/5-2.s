@@ -101,15 +101,3 @@ dfinish
   
   align
   END
-  
-  ; END OF 5-1 code copied over
-
-loop
-  ldr r0, =0x40010808 ; PORTA->idr, read from port A ; RM0041 p. 111
-  ldr r0, [r0]
-  lsr r0, #1
-  and r0, #1 ; We only care about the value in bit 0
-  ;add r0, #2 ; 2 blinks for 0 (not pressed), 3 blinks for 1
-  bl blink   ; Call blink using branch-and-link; RM0056 p. 92
-  b loop
-
