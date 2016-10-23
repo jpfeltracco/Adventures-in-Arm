@@ -19,3 +19,9 @@
 	the ODR bits are cleared for the pins to be pull downs. This step
 	may not be necessary if we just reset.
 5-3
+    1.  I would remove the line that sets bit 0 of EXTI_RTSR and replace
+        it with one that sets bit 0 of EXTI_FTSR (str r1, [r0, #0xC]).
+    2.  I would set the 0th bit of the EXTI_FTSR in addition to the first
+        bit of EXTI_RTSR, this will cause both rising and falling edges
+        to launch interrupts.
+    3. pop {r0, r1, r3, r4, pc} (assuming r0, r1, r3, r4, and lr were pushed)
