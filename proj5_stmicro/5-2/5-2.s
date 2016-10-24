@@ -12,7 +12,7 @@ GREEN EQU 0x200              ; Address in ODR to write to
 BLUE  EQU 0x100
 BOTH  EQU 0x300
 
-SHORT EQU 0x200000           ; Number of iterations
+SHORT EQU 0x30000           ; Number of iterations
 LONG  EQU 0x400000
 LETTERPAUSE EQU 0x600000
 
@@ -44,7 +44,9 @@ checkpress
   ldr r3, =GREEN
   bl blink
 
-  mov r0, #0                 ; button press count, roughly proportional to user press
+  ; Some small constant value so that the blue LED always lights up a little
+  ; if the button was pressed.
+  mov r0, #0x1000            ; button press count, roughly proportional to user press
 checkunpress
   add r0, #1                 ; increment each loop
   
@@ -80,10 +82,6 @@ blink
 
   ldr r3, =0
   str r3, [r1]
-
-bfinish
-  ldr r0, =0x100000          ; delay between blinks
-  bl delay
 
   pop {r0, r3, pc}           ; pop pc as procedure return (from lr)
 
