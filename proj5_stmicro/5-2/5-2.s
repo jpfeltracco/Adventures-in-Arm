@@ -12,7 +12,7 @@ GREEN EQU 0x200              ; Address in ODR to write to
 BLUE  EQU 0x100
 BOTH  EQU 0x300
 
-SHORT EQU 0x30000           ; Number of iterations
+SHORT EQU 0x30000            ; Number of iterations
 LONG  EQU 0x400000
 LETTERPAUSE EQU 0x600000
 
