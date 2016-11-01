@@ -1,0 +1,7 @@
+Rate = Init_Val / (4,000,000 / 8)
+1.  I would set the systick reload value to 100 * (4,000,000 / 8) = 0x2FAF080
+    i.e. instead of mov r1, #0x100000, do ldr r1, =0x2FAF080
+2.  It is used to select between two clock sources, AHB or a prescaled
+    by 8 version AHB/8.
+3.  The processor would get interrupted so quickly the main code of the
+    program may not have time to execute properly.

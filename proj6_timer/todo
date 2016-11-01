@@ -1,0 +1,24 @@
+init
+    set systick to once a millisecond // done
+
+loop
+    if (normal)
+        flash green
+        flash blue
+    else
+        flash green and blue
+
+When button pressed
+    Reset counter
+
+When button released
+    save old counter
+    clear counter
+    set normal = false
+
+When clock tick // done
+    Counter++
+    if (!normal && counter > old counter)
+        normal = true
+
+Button Press Subroutine
