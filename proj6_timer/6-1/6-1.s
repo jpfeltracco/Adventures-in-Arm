@@ -74,15 +74,22 @@ LETTERPAUSE EQU 0x600000
         mov r2, #0x40       ; Bit corresponding to IRQ6 
         str r2, [r0]        ; NVC->iser0; set enabled 
         
-        ; Clear our counter.
-        ldr r0, =0x20000400
-        mov r1, #0
-        str r1, [r0]
+        mov r0, #0
+        ldr r1, =SIMUL
+        str r0, [r1]
+        
+        ldr r1, =PRESSED
+        str r0, [r1]
+        
+        ldr r1, =COUNT
+        str r0, [r1]
+        
+        ldr r1, =OLDCNT
+        str r0, [r1]
 
         ; Enable interrupts. 
         cpsie i
 
-        ; Infinite loop. Do nothing except for handling interrupts. 
 loop    
         ; Check if SIMUL is enabled
         ldr r1, =SIMUL
@@ -104,6 +111,16 @@ simul_enb
         ldr r3, =BOTH
         bl blink
         b loop
+        
+; Checks button state for use in conditionals, sets Z-bit
+; if equal, and clears Z-bit if not equal.
+button
+        push {r0}
+        ldr r0, =0x40010808        ; Memory address for reading GPIOA_IDR
+        ldr r0, [r0]
+        ands r0, #1                ; Only care about bit 0
+        pop {r0}
+        bx lr
 
 
 ext0_handler  push {lr, r0, r1}
@@ -114,9 +131,12 @@ ext0_handler  push {lr, r0, r1}
         ;and r0, #1 ; Test bit 0 
         ;cbz r0, skip_ext0
         ldr r1, =PRESSED
+        ldr r1, [r1]
         cmp r1, #0
         bne ext0_unpressed
 ext0_pressed
+        bl button
+        beq ext0_done ; button isn't actually pressed, escape
         ; Clear counter
         mov r0, #0
         ldr r1, =COUNT
@@ -127,22 +147,34 @@ ext0_pressed
         str r0, [r1]
         b ext0_done
 ext0_unpressed
+        bl button
+        bne ext0_done
+        ; PRESSED = false
+        mov r0, #0
+        ldr r1, =PRESSED
+        str r0, [r1]
         ; Get COUNTER Value
-        ldr r1, =COUNTER
+        ldr r1, =COUNT
         ldr r1, [r1]
         ; Store in OLDCNT
         ldr r0, =OLDCNT
-        str r1, [OLDCNT]
+        str r1, [r0]
         ; Set SIMUL to ON
         mov r0, #1
         ldr r1, =SIMUL
         str r0, [r1]
 
 ext0_done
-        ; Clear pending-bit in interrupt controller 
-        ldr r0, =0xe000e280 ; NVIC->icpr0; see PM0051 p. 123 
+        ; Clear pending-bit in EXTI; see RM0041 p. 140
+        ldr r0, =0x40010414
+        mov r1, #1
+        str r1, [r0]
+
+        ; Clear pending-bit in interrupt controller
+        ldr r0, =0xE000E280        ; NVIC->icpr0; see PM0051 p. 123
         mov r1, #0x40
         str r1, [r0]
+        
         pop {pc, r0, r1} ; Return from interrupt. 
 
 
@@ -157,53 +189,24 @@ systick_handler
         
         ; Get simul mode var
         ldr r2, =SIMUL
+        ldr r2, [r2]
+        
         cmp r2, #0
         beq systick_end
         ; Get old counter var
         ldr r0, =OLDCNT
-        ; Compare counter and old counter
-        cmp r0, r3
-        ble systick_end
-        ; If counter > old counter, we're done with simul
+        ldr r0, [r0]
+        ; Compare old counter and counter
+        cmp r0, r1
+        ; If old counter > counter, don't disable simul
+        bge systick_end
         mov r0, #0
         ; Set simul mode to 0 (false)
+        ldr r2, =SIMUL
         str r0, [r2]
 
 systick_end
         pop {pc, r0, r1, r2}
-
-        
-        ; Takes number of blinks in r0. 
-blink   push {r0, r1, r3, lr} ; Push; see RM0041 p. 68 
-        ldr r1, =0x4001100c ; PORTC->odr; see RM0041 p. 113 
-
-bloop   cbz r0, bfinish ; Compare and branch if zero; PM0056 p. 93 
-
-        ldr r3, =0x300
-        str r3, [r1]
-
-        push {r0} ; Preserve r0 since it holds our counter. 
-        ldr r0, =200000
-        bl delay
-        pop {r0}  ; Pop; see RM0041 p. 68 
-
-        ldr r3, =0
-        str r3, [r1]
-
-        push {r0}
-        ldr r0, =200000
-        bl delay
-        pop {r0}
-
-        sub r0, #1
-        
-        b bloop
-        
-bfinish ldr r0, =1000000
-        bl delay
-
-        ; We push lr and pop it into the pc as our procedure return.
-        pop {r0, r1, r3, pc}
         
         ; Takes number of delay iterations in r0. 
 delay   push {r0}
@@ -219,7 +222,7 @@ dfinish pop {r0}
 ; r0: length of blink
 ; r3: data to write to odr
 blink
-        push {r0, r3, lr}          ; Push; see RM0041 p. 68
+        push {r0, r1, r3, lr}          ; Push; see RM0041 p. 68
         ldr r1, =0x4001100C        ; PORTC->odr; see RM0041 p. 113
 
         str r3, [r1]
@@ -233,7 +236,7 @@ bfinish
         ldr r0, =0x100000          ; delay between blinks
         bl delay
 
-        pop {r0, r3, pc}           ; pop pc as procedure return (from lr)
+        pop {r0, r1, r3, pc}           ; pop pc as procedure return (from lr)
 
   align
   END
