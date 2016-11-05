@@ -41,12 +41,12 @@ SHORT   equ 0xFF00             ; Number of iterations
         ldr r1, =0x44444444 ; All inputs; RM0041 p. 112 
         str r1, [r0]
 
-        ; Initialize the systick timer to branch to systick every 1 millisecond
+        ; Initialize the systick timer to branch to systick every 10 ms
         ldr r0, =0xe000e010 ; systick base; PM0056 p. 150 
-        ldr r1, =1000   ; systick reload value; PM0056 p. 152 
+        ldr r1, =40000    ; systick reload value; PM0056 p. 152 
         str r1, [r0, #4]  ; SYSTICK->load 
         ldr r1, [r0, #0]  ; SYSTICK->ctrl; PM0056 p. 151 
-        orr r1, #7        ; Set to 3: enable interrupt and counting 
+        orr r1, #7        ; Set to 7: enable interrupt and counting, non prescaled clock
         str r1, [r0, #0]
         
         ; Switch to 24MHz clock.

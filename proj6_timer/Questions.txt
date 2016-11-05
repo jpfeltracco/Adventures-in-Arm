@@ -1,7 +1,23 @@
-Time = Init_Val / (4,000,000 / 8)
-1.  I would set the systick reload value to 100 * (4,000,000 / 8) = 0x2FAF080
-    i.e. instead of mov r1, #0x100000, do ldr r1, =0x2FAF080
+Period = Init_Val / (4,000,000 / 8)
+2.1
+1.  I would first set SYSTICK->ctrl to 0b111 (7 dec) to use the 
+    non-prescaled clock source. Then I would set the systick reload
+    value to (1 / 100) * 4,000,000 = 40,000.
+    i.e. instead of mov r1, #0x100000, do ldr r1, #40,000.
 2.  It is used to select between two clock sources, AHB or a prescaled
-    by 8 version AHB/8.
+    by 8 version AHB/8. A 1 bit denotes the processor clock (non-prescaled) and
+    the 0 bit denotes processor clock / 8.
 3.  The processor would get interrupted so quickly the main code of the
     program may not have time to execute properly.
+2.2
+1.  The crystal-controlled oscillator is much more stable than the internal
+    RC oscillator.
+2.  Since our prescalar before was x6 (which gets divided by 2) inorder to
+    get 8x3 = 24 Mhz scaling, we can instead use a scalar of x16 because
+    4 * 16 / 2 = 24 Mhz. Specifically we would store 0b1110 in the PLLMUL
+    bits, ie ldr r1, =0x100038, and store r1 in RCC->cfgr.
+3.  The lights would blink more quickly as the faster clock rate would speed
+    up all instructions. The basic functionality and timing the button
+    presses would all still be correct however.
+4.  Dunno?
+
