@@ -12,7 +12,7 @@ __Vectors
   DCD ext0_handler + 1    ; IRQ6 : external interrupt from exti controller
 
 Reset_Handler
-COUNT   equ 0x20000400
+COUNT   equ 0x20000400    ; used to time led states
 MODE    equ 0x20000404    ; blue is 0, green is 1, print score is 2, lost is 3
 PRESSED equ 0x20000408    ; set by ext0 interrupt, read and cleared every systick
 POINTS  equ 0x2000040C    ; set to number of points scored
@@ -113,7 +113,7 @@ ext0_handler  push {lr, r0, r1}
         and r0, #1 ; Test bit 0 
         cbz r0, skip_ext0
   
-        ; Set PRESSED to true
+        ; Set PRESSED to true, this is all this interrupt is responsible for
         mov r0, #1
         ldr r1, =PRESSED
         str r0, [r1]
@@ -147,14 +147,14 @@ systick_handler
         cmp r0, #1
         beq systick_green     ; green state
         cmp r0, #2
-        beq systick_points
+        beq systick_points    ; flash points state
         
 systick_dead
-        ; otherwise, we are in dead state
+        ; otherwise, we are in dead state, do nothing
         mov r0, #0
         bl set_leds
         b systick_done
-        
+
 systick_blue
         ; check if we should transition to green
         ldr r2, =COUNT
@@ -182,6 +182,7 @@ systick_blue_cont
         mov r0, #3
         str r0, [r1]
         b systick_done
+        
 systick_green
         ; check if we should transition to blue
         ldr r2, =COUNT
@@ -217,12 +218,15 @@ systick_green_cont
         add r0, #1
         str r0, [r2]
         b systick_done
+
 systick_points
         ; hard code the blinks in this systick because we
-        ; don't care about the length of blinks too much
+        ; don't care about the length of blinks too much here
         ldr r2, =POINTS
         ldr r2, [r2]
-        mov r0, #0x100000
+        mov r0, #0
+        bl set_leds
+        mov r0, #0x300000
         bl delay
 systick_points_check
         cmp r2, #0
@@ -255,13 +259,16 @@ systick_done
         pop {pc, r0, r1, r2}
 
 ; returns in r0 the amount of time to wait based on POINTS
+; formula is 1/n, when n == 0, returns 1 second.
+; NOTE: this means that on point 0 and point 1, there will be
+; no change in the length of time green displays for.
 green_len
         push {lr, r1, r2}
         mov r0, #0
         mov r1, #1000      ; 1 second in ms
         ldr r2, =POINTS    ; num points
         ldr r2, [r2]
-        cmp r2, #0
+        cmp r2, #0         ; check if div by 0, if so return 1 second
         bne green_len_div
         mov r0, #1000
         b green_len_done

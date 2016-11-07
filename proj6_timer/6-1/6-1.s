@@ -12,17 +12,17 @@ __Vectors
   ;DCD ext0_handler + 1    ; IRQ6 : external interrupt from exti controller
 
 Reset_Handler
-COUNT   equ 0x20000400
-OLDCNT  equ 0x20000404
-PRESSED equ 0x20000408
-SIMUL   equ 0x2000040C
-BREAK   equ 0x20000410         ; indicates that we should break out of delay
+COUNT   equ 0x20000400      ; Incremented each systick
+OLDCNT  equ 0x20000404      ; Used to store the length of the button press
+PRESSED equ 0x20000408      ; Used to indicate last state of the button
+SIMUL   equ 0x2000040C      ; Used in loop to indicate if lights should be simultaneous
+BREAK   equ 0x20000410      ; Indicates that we should break out of delay
 
-GREEN   equ 0x200              ; Address in ODR to write to
+GREEN   equ 0x200           ; Address in ODR to write to
 BLUE    equ 0x100
 BOTH    equ 0x300
 
-SHORT   equ 0xFF00             ; Number of iterations
+SHORT   equ 0xFF00          ; Number of iterations
 
         ;  Enable I/O port clocks 
         ldr r0, =0x40021018 ; RCC->apb2enr, see RM0041 p. 84 
@@ -43,10 +43,10 @@ SHORT   equ 0xFF00             ; Number of iterations
 
         ; Initialize the systick timer to branch to systick every 10 millisecond
         ldr r0, =0xe000e010 ; systick base; PM0056 p. 150 
-        ldr r1, =40000   ; systick reload value; PM0056 p. 152 
-        str r1, [r0, #4]  ; SYSTICK->load 
-        ldr r1, [r0, #0]  ; SYSTICK->ctrl; PM0056 p. 151 
-        orr r1, #7        ; Set to 7: enable interrupt and counting, non-prescaled 
+        ldr r1, =40000      ; systick reload value; PM0056 p. 152 
+        str r1, [r0, #4]    ; SYSTICK->load 
+        ldr r1, [r0, #0]    ; SYSTICK->ctrl; PM0056 p. 151 
+        orr r1, #7          ; Set to 7: enable interrupt and counting, non-prescaled 
         str r1, [r0, #0]
         
         mov r0, #0
@@ -62,9 +62,10 @@ SHORT   equ 0xFF00             ; Number of iterations
         ldr r1, =OLDCNT
         str r0, [r1]
 
-        ; Enable interrupts. 
-        ;cpsie i
-
+; Main loop, looks at the SIMUL flag and uses it
+; to determine the blinking pattern. If BREAK is set,
+; delay will end early so the next pattern will
+; take over immediately.
 loop    
         ; Reset break flag
         mov r0, #0
@@ -108,20 +109,18 @@ systick_handler
         ldr r1, =PRESSED
         ldr r1, [r1]
         
-        cmp r0, r1    ; compare current button state with last button
+        cmp r0, r1         ; compare current button state with last button
         beq systick_end
         
-        ; We had a button transition, check if its a press or unpress
+        ; We had a button transition, check if it's a press or unpress
         cmp r0, #0
         beq unpressed
-        ; beq means unpressed
-        ; bne means pressed
 pressed
         ; set pressed to true
         mov r0, #1
         ldr r1, =PRESSED
         str r0, [r1]
-        ; clear count
+        ; clear count so we can time how long the button is held
         mov r0, #0
         ldr r1, =COUNT
         str r0, [r1]
@@ -141,16 +140,17 @@ unpressed
         mov r0, #1
         ldr r1, =SIMUL
         str r0, [r1]
-        ; clear count
+        ; clear count so we can time how long we've been blinking
         mov r0, #0
         ldr r1, =COUNT
         str r0, [r1]
-        ; set break to true to exit alternating blinking
+        ; set break to true to exit alternating blinking early
         mov r0, #1
         ldr r1, =BREAK
         str r0, [r1]
         ; done
         b systick_done
+; runs whether or not we had a button state change
 systick_end
         ; increment count
         ldr r0, =COUNT
@@ -163,7 +163,7 @@ systick_end
         mov r0, #0
         cmp r0, r1
         beq systick_done
-        ; simul is true, so check if we're done
+        ; simul is true, so check if we're done yet
         ldr r0, =COUNT
         ldr r0, [r0]
         ldr r1, =OLDCNT
@@ -184,6 +184,7 @@ systick_done
         pop {pc, r0, r1, r2}
         
 ; r0, length of delay
+; this version will break early if the BREAK flag is set
 delay   push {lr, r0, r1}
         
 dloop   ldr r1, =BREAK

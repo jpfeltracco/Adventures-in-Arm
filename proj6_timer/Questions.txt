@@ -12,12 +12,12 @@ Period = Init_Val / (4,000,000 / 8)
 2.2
 1.  The crystal-controlled oscillator is much more stable than the internal
     RC oscillator.
-2.  Since our prescalar before was x6 (which gets divided by 2) inorder to
-    get 8x3 = 24 Mhz scaling, we can instead use a scalar of x16 because
-    4 * 16 / 2 = 24 Mhz. Specifically we would store 0b1110 in the PLLMUL
-    bits, ie ldr r1, =0x100038, and store r1 in RCC->cfgr.
+2.  Since our prescalar before was x6 (which gets divided by 2) in order to
+    get 8 x 3 = 24 Mhz scaling, we can instead use a scalar of x12 because
+    4 * 12 / 2 = 24 Mhz. Specifically we would store 0b1010 in the PLLMUL
+    bits, ie ldr r1, =0x100028, and store r1 in RCC->cfgr.
 3.  The lights would blink more quickly as the faster clock rate would speed
     up all instructions. The basic functionality and timing the button
     presses would all still be correct however.
-4.  Dunno?
+4.  (((8 Mhz / 2) * 2) / 16) / 512 = approximately 977 Hz.
 
